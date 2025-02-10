@@ -4,14 +4,8 @@
 # Add options: Sort, Add, Delete
 #   Sorting Options: Alphabetical, by low, by item count, item type
 # When Selecting: Move
-# Low on stock -> highlight
 # To Buy List -> checkbox for shopping
 # Change amount
-
-# Pseudo Coding
-# load csv as pandas df
-# sort into fridge & to_buy
-# show on screen & highlight low items
 
 import tkinter as tk
 from tkinter import ttk
@@ -78,13 +72,13 @@ def delete_item(full_list, old_food):
         full_list.drop((index), inplace=True)
     return full_list
 
-def switch_boolean(full_list, curr_food, column):
-    """Updates column to not column for curr_food & returns full_list"""
-    # Mostly useful for is_low and in_cart
-    if (column in full_list.columns) & is_in_list(full_list, curr_food):
-        index = get_index(full_list, curr_food)
-        full_list.at[index, column] = ~full_list.at[index, column]
-    return full_list
+# def switch_boolean(full_list, curr_food, column):
+#     """Updates column to not column for curr_food & returns full_list"""
+#     # Mostly useful for is_low and in_cart
+#     if (column in full_list.columns) & is_in_list(full_list, curr_food):
+#         index = get_index(full_list, curr_food)
+#         full_list.at[index, column] = ~full_list.at[index, column]
+#     return full_list
 
 def update_amount(full_list, curr_food, new_amount):
     """Updates curr_food amount to new_amount in full_list & returns full_list"""
@@ -114,10 +108,6 @@ def save_file(full_list):
     return 0
 
 # Tkinter Functions Functions
-def button_clicked():
-    """Test"""
-    print("Button Clicked")
-
 def create_scroll_list(root, which_list):
     """Create a Scrollbar and Listbox"""
     frame = tk.Frame(root)
@@ -143,9 +133,10 @@ def update_scroll_list(which_listbox, which_list):
             which_listbox.itemconfig(index, bg='#D3D3D3')
     return 0
 
-
+# Main Function
 def main():
     """Create the Main Window"""
+    # Functions Connecting Buttons to Action Functions - Buttons don't pass values
     def add():
         """Function to add food given name and type"""
         global grocery_list
@@ -173,6 +164,19 @@ def main():
             grocery_list = delete_item(grocery_list, food_name)
         update_all()
 
+    def change_amount():
+        """Changes amount of selected items if amount is a valid integer"""
+        global grocery_list
+        change_list = get_selected_items()
+        try:
+            amount = int(new_amount.get())
+            for _, item in enumerate(change_list):
+                food_name = get_food_name(item)
+                grocery_list = update_amount(grocery_list, food_name, amount)
+            update_all()
+        except ValueError:
+            return 0
+
     def move_to(where):
         """Moves selected items to specified list"""
         global grocery_list
@@ -195,7 +199,7 @@ def main():
         move_to('past_items')
 
     def in_cart():
-        """"Function to change items to in_cart"""
+        """"Function to change items to in_cart or not in_cart"""
         global grocery_list
         cart_ind = buy_lb.curselection()
         cart_list = [buy_lb.get(index) for index in cart_ind]
@@ -231,9 +235,9 @@ def main():
     root = tk.Tk()
     root.title("Grocery List")
     screen_w = 800
-    screen_h = 500
-    button_w = int(screen_w / 80)
-    button_h = int(1)
+    screen_h = 550
+    button_w = 10
+    button_h = 1
     padding = int(screen_w / 100)
     screen_size = str(screen_w) + 'x' + str(screen_h)
     root.geometry(screen_size)
@@ -248,7 +252,7 @@ def main():
     sort_frame.pack(side=tk.TOP)
     tk.Label(sort_frame, text='Sort By: ').pack(side=tk.LEFT)
     sort_by = ttk.Combobox(sort_frame, values=['food', 'food_type', 'amount', 'is_low', 'in_cart'])
-    sort_by.set('food')
+    sort_by.set('in_cart')
     sort_by.pack(side=tk.LEFT)
 
     # Scrollable Lists - Parent & Child Frames, Labels, Scroll Listboxes
@@ -278,54 +282,67 @@ def main():
     past_frame, past_lb = create_scroll_list(past_frame, past_items)
     past_frame.pack(side=tk.TOP)
 
-    # Add Items
+    # Add Items - Frames, Entry & Labels
     add_frame = tk.Frame(root, padx=padding, pady=padding)
     add_frame.pack()
     tk.Label(add_frame, text='Food Name: ').pack(side=tk.LEFT)
     new_food = tk.Entry(add_frame)
-    new_food.pack(side=tk.LEFT)
+    new_food.pack(side=tk.LEFT, padx=padding)
     tk.Label(add_frame, text='Food Type: ').pack(side=tk.LEFT)
     new_type = tk.Entry(add_frame)
-    new_type.pack(side=tk.LEFT)
+    new_type.pack(side=tk.LEFT, padx=padding)
     sort()
 
-    # Move Items Frame & Label
+    # Change Amount - Frame, Entry & Label
+    amount_frame = tk.Frame(root, padx=padding, pady=padding)
+    amount_frame.pack()
+    tk.Label(amount_frame, text='Change Amount to: ').pack(side=tk.LEFT)
+    new_amount = tk.Entry(amount_frame)
+    new_amount.pack(side=tk.LEFT)
+
+    # Move Items - Frame & Label
     move_frame = tk.Frame(root, padx=padding, pady=padding)
     move_frame.pack()
     tk.Label(move_frame, text='Move Items to: ').pack(side=tk.LEFT)
 
-    # Buttons
+    # In/Out Cart, Delete, Save Buttons Frame
     button2_frame =tk.Frame(root, padx=padding, pady=padding)
     button2_frame.pack()
-    button = tk.Button(add_frame, text="Add",
-                       width=button_w, height=button_h, command=add)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(sort_frame, text="Sort",
+
+    # Buttons
+    sort_button = tk.Button(sort_frame, text="Sort",
                        width=button_w, height=button_h, command=sort)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(button2_frame, text="In/Out Cart",
-                       width=button_w, height=button_h, command=in_cart)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(move_frame, text="Fridge",
+    sort_button.pack(side=tk.LEFT, padx=padding)
+
+    add_button = tk.Button(add_frame, text="Add",
+                       width=button_w, height=button_h, command=add)
+    add_button.pack(side=tk.LEFT, padx=padding)
+
+    amount_button = tk.Button(amount_frame, text='Change',
+                              width=button_w, height=button_h, command=change_amount)
+    amount_button.pack(side=tk.LEFT, padx=padding)
+
+    fridge_button = tk.Button(move_frame, text="Fridge",
                        width=button_w, height=button_h, command=move_to_fridge)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(move_frame, text="To Buy",
+    fridge_button.pack(side=tk.LEFT, padx=padding)
+    buy_button = tk.Button(move_frame, text="To Buy",
                        width=button_w, height=button_h, command=move_to_buy)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(move_frame, text="Past Items",
+    buy_button.pack(side=tk.LEFT, padx=padding)
+    past_button = tk.Button(move_frame, text="Past Items",
                        width=button_w, height=button_h, command=move_to_past)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(button2_frame, text="Delete",
+    past_button.pack(side=tk.LEFT, padx=padding)
+
+    cart_button = tk.Button(button2_frame, text="In/Out Cart",
+                       width=button_w, height=button_h, command=in_cart)
+    cart_button.pack(side=tk.LEFT, padx=padding)
+    delete_button = tk.Button(button2_frame, text="Delete",
                        width=button_w, height=button_h, command=delete)
-    button.pack(side=tk.LEFT, padx=padding)
-    button = tk.Button(button2_frame, text="Save",
+    delete_button.pack(side=tk.LEFT, padx=padding)
+    save_button = tk.Button(button2_frame, text="Save",
                        width=button_w, height=button_h, command=save)
-    button.pack(side=tk.LEFT, padx=padding)
+    save_button.pack(side=tk.LEFT, padx=padding)
 
     root.mainloop()
 
 if __name__ == "__main__":
     main()
-
-# TO DO:
-# Allow user to change number of items
