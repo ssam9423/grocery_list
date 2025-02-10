@@ -72,14 +72,6 @@ def delete_item(full_list, old_food):
         full_list.drop((index), inplace=True)
     return full_list
 
-# def switch_boolean(full_list, curr_food, column):
-#     """Updates column to not column for curr_food & returns full_list"""
-#     # Mostly useful for is_low and in_cart
-#     if (column in full_list.columns) & is_in_list(full_list, curr_food):
-#         index = get_index(full_list, curr_food)
-#         full_list.at[index, column] = ~full_list.at[index, column]
-#     return full_list
-
 def update_amount(full_list, curr_food, new_amount):
     """Updates curr_food amount to new_amount in full_list & returns full_list"""
     if is_in_list(full_list, curr_food):
