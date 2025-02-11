@@ -6,6 +6,8 @@ The groceries are sorted into 3 lists:
   - To Buy: Items that the user needs to buy
   - Past Items: Items that the user had in the past, but is not currently in the fridge or the user needs to buy.
 
+<img src="https://github.com/user-attachments/assets/d00102ad-a49c-41ad-862d-5236ad6fa01e" width="510" height="340"/>
+
 The user can easily sort the lists by the following:
   - `food`: alphabetically
   - `food_type`: alphabetically by food type
