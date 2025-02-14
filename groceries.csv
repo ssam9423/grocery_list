@@ -1,20 +1,20 @@
-food,food_type,is_stocked,is_low,need_to_buy,amount,in_cart
-all purpose flour,baking,True,True,False,0,False
-beef,meat,False,False,False,1,False
-butter,dairy,False,False,False,1,False
-celery,vegetables,False,True,False,1,False
-cheese,dairy,False,False,False,1,False
-chicken,meat,True,False,False,0,False
-chicken stock,pantry,True,False,False,1,False
-eggs,meat,True,False,False,12,False
-ground turkey,meat,False,False,True,1,False
-milk,dairy,False,False,False,1,False
-oat milk,beverage,False,False,True,1,False
-onions,vegetables,False,True,True,5,False
-pomelo,fruit,False,False,True,1,False
-pork,meat,False,False,False,0,False
-raspberries,fruit,False,False,False,1,False
-salad mix,vegetables,True,False,False,0,False
-strawberries,fruit,False,False,False,1,False
-broccoli,vegetables,False,False,True,1,False
-cauliflower,vegetables,False,False,True,1,False
+food,food_type,is_stocked,stocked_num,need_to_buy,buy_num,in_cart
+all purpose flour,baking,True,1,False,0,False
+raspberries,fruit,False,0,True,1,False
+pork,meat,False,0,True,1,False
+pomelo,fruit,False,0,True,1,False
+onion,vegetables,True,2,True,2,False
+oat milk,beverage,True,1,False,1,False
+milk,dairy,False,0,False,1,False
+ground turkey,meat,True,1,False,0,False
+salad mix,vegetables,True,2,False,1,False
+egg,meat,True,3,False,10,False
+chicken,meat,False,2,True,1,False
+cheese,dairy,False,0,False,1,False
+celery,vegetables,True,1,False,1,False
+cauliflower,vegetables,False,1,True,1,False
+butter,dairy,False,0,False,1,False
+broccoli,vegetables,False,1,True,1,False
+beef,meat,False,2,False,1,False
+chicken stock,pantry,True,2,False,1,False
+strawberries,fruit,False,1,True,1,False
