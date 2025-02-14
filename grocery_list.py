@@ -4,8 +4,13 @@
 # Add options: Sort, Add, Delete
 #   Sorting Options: Alphabetical, by low, by item count, item type
 # When Selecting: Move
+# Low on stock -> highlight
 # To Buy List -> checkbox for shopping
 # Change amount
+
+# groceries.csv: food,food_type,is_stocked,is_low,need_to_buy,amount,in_cart
+
+# Need to change is_stocked, need_to_buy to numbers
 
 import tkinter as tk
 from tkinter import ttk
@@ -13,7 +18,6 @@ import pandas as pd
 import numpy as np
 
 FILE_NAME = 'groceries.csv'
-PATH_TO_FILE = ''
 grocery_list = pd.read_csv(FILE_NAME)
 in_fridge, to_buy, past_items = [], [], []
 
@@ -25,8 +29,19 @@ def move(full_list, move_to, food_name):
         index = get_index(full_list, food_name)
         full_list.at[index, 'is_stocked'] = False
         full_list.at[index, 'need_to_buy'] = False
+        # Moving to fridge (is_stocked) or to buy (need_to_buy)
         if move_to in full_list.columns:
             full_list.at[index, move_to] = True
+            # If moving to fridge, add 'buy_num' to 'stocked_num'
+            if move_to == 'is_stocked':
+                full_list.at[index, 'stocked_num'] += full_list.at[index, 'buy_num']
+            # If moving out of fridge, change 'stocked_num' to 0
+            else:
+                full_list.at[index, 'stocked_num'] = 0
+        # Moving to past_items - change all numbers to 0
+        else:
+            full_list.at[index, 'stocked_num'] = 0
+            full_list.at[index, 'buy_num'] = 0
     return full_list
 
 def sort_list(which_list, sort_criteria):
@@ -34,8 +49,11 @@ def sort_list(which_list, sort_criteria):
     # Most useful for food, food_type, is_low, in_cart
     if sort_criteria in which_list.columns:
         which_list = which_list.sort_values(by=sort_criteria)
-    if sort_criteria == 'is_low':
-        which_list = which_list.iloc[::-1]
+    # if sort_criteria == 'stocked_num':
+    #     which_list = which_list.iloc[::-1]
+    if sort_criteria == 'number of items':
+        which_list = which_list.sort_values(by='stocked_num')
+        which_list = which_list.sort_values(by='buy_num')
     return which_list
 
 def get_index(which_list, food_name):
@@ -56,7 +74,7 @@ def get_food_name(item_string):
     return item_string[space_index:]
 
 def add_item(full_list, new_food, new_type, stocked=False,
-             low=False, buy=True, amount=1, cart=False):
+             low=0, buy=True, amount=1, cart=False):
     """Adds new food to grocery_list db and returns grocery_list"""
     # Check if new_food is already in full_list
     if ~is_in_list(full_list, new_food):
@@ -72,11 +90,15 @@ def delete_item(full_list, old_food):
         full_list.drop((index), inplace=True)
     return full_list
 
-def update_amount(full_list, curr_food, new_amount):
+def update_amount(full_list, curr_food, new_amount, where):
     """Updates curr_food amount to new_amount in full_list & returns full_list"""
     if is_in_list(full_list, curr_food):
         index = get_index(full_list, curr_food)
-        full_list.at[index, 'amount'] = new_amount
+        full_list.at[index, where] = new_amount
+        if where == 'stocked_num':
+            full_list.at[index, 'is_stocked'] = True
+        if where == 'buy_num':
+            full_list.at[index, 'need_to_buy'] = True
     return full_list
 
 def update_in_cart(full_list, curr_food):
@@ -100,24 +122,26 @@ def save_file(full_list):
     return 0
 
 # Tkinter Functions Functions
-def create_scroll_list(root, which_list):
+def create_scroll_list(root, which_list, where):
     """Create a Scrollbar and Listbox"""
     frame = tk.Frame(root)
     list_scroll = tk.Scrollbar(frame)
     list_scroll.pack(side=tk.RIGHT)
     # Listboxes
     list_box = tk.Listbox(frame, yscrollcommand=list_scroll.set, selectmode='multiple')
-    update_scroll_list(list_box, which_list)
+    update_scroll_list(list_box, which_list, where)
     list_box.pack(side=tk.LEFT)
     list_scroll.config(command=list_box.yview)
     return frame, list_box
 
-def update_scroll_list(which_listbox, which_list):
+def update_scroll_list(which_listbox, which_list, where):
     """Update Listbox"""
     which_listbox.delete(0, tk.END)
     for index in range(which_list.shape[0]):
         food = which_list.iloc[index].loc['food']
-        amount = which_list.iloc[index].loc['amount']
+        amount = 0
+        if where != '':
+            amount = which_list.iloc[index].loc[where]
         item_count = str(amount) + "   " + str(food)
         which_listbox.insert(tk.END, item_count)
         # Highlights item as light grey if in_cart
@@ -143,8 +167,10 @@ def main():
         consolidated_list = []
         for _, listbox in enumerate([fridge_lb, buy_lb, past_lb]):
             indexes = listbox.curselection()
-            items = [listbox.get(index) for index in indexes]
-            consolidated_list.extend(items)
+            if len(indexes) > 0:
+                items = [listbox.get(index) for index in indexes]
+                consolidated_list.extend(items)
+                break
         return consolidated_list
 
     def delete():
@@ -160,11 +186,16 @@ def main():
         """Changes amount of selected items if amount is a valid integer"""
         global grocery_list
         change_list = get_selected_items()
+        where_amount = amount_where.get()
+        if where_amount == 'Fridge':
+            where_amount = 'stocked_num'
+        else:
+            where_amount = 'buy_num'
         try:
             amount = int(new_amount.get())
             for _, item in enumerate(change_list):
                 food_name = get_food_name(item)
-                grocery_list = update_amount(grocery_list, food_name, amount)
+                grocery_list = update_amount(grocery_list, food_name, amount, where_amount)
             update_all()
         except ValueError:
             return 0
@@ -212,9 +243,9 @@ def main():
         """Function to update all Scroll Lists and dbs"""
         global in_fridge, to_buy, past_items
         in_fridge, to_buy, past_items = update_lists(grocery_list)
-        update_scroll_list(fridge_lb, in_fridge)
-        update_scroll_list(buy_lb, to_buy)
-        update_scroll_list(past_lb, past_items)
+        update_scroll_list(fridge_lb, in_fridge, 'stocked_num')
+        update_scroll_list(buy_lb, to_buy, 'buy_num')
+        update_scroll_list(past_lb, past_items, '')
 
     def save():
         """Save Lists to csv file"""
@@ -243,7 +274,7 @@ def main():
     sort_frame = tk.Frame(root)
     sort_frame.pack(side=tk.TOP)
     tk.Label(sort_frame, text='Sort By: ').pack(side=tk.LEFT)
-    sort_by = ttk.Combobox(sort_frame, values=['food', 'food_type', 'amount', 'is_low', 'in_cart'])
+    sort_by = ttk.Combobox(sort_frame, values=['food', 'food_type', 'number of items', 'in_cart'])
     sort_by.set('in_cart')
     sort_by.pack(side=tk.LEFT)
 
@@ -261,17 +292,17 @@ def main():
     # In Fridge Label & Scroll Listbox
     fridge_label = tk.Label(fridge_frame, text="Fridge")
     fridge_label.pack(side=tk.TOP)
-    fridge_frame, fridge_lb = create_scroll_list(fridge_frame, in_fridge)
+    fridge_frame, fridge_lb = create_scroll_list(fridge_frame, in_fridge, 'stocked_num')
     fridge_frame.pack(side=tk.TOP)
     # To Buy Label & Scroll Listbox
     buy_label = tk.Label(buy_frame, text="To Buy")
     buy_label.pack(side=tk.TOP)
-    buy_frame, buy_lb = create_scroll_list(buy_frame, to_buy)
+    buy_frame, buy_lb = create_scroll_list(buy_frame, to_buy, 'buy_num')
     buy_frame.pack(side=tk.TOP)
     # Past Items Label and Scroll Listbox
     past_label = tk.Label(past_frame, text="Past Items")
     past_label.pack(side=tk.TOP)
-    past_frame, past_lb = create_scroll_list(past_frame, past_items)
+    past_frame, past_lb = create_scroll_list(past_frame, past_items, '')
     past_frame.pack(side=tk.TOP)
 
     # Add Items - Frames, Entry & Labels
@@ -290,7 +321,11 @@ def main():
     amount_frame.pack()
     tk.Label(amount_frame, text='Change Amount to: ').pack(side=tk.LEFT)
     new_amount = tk.Entry(amount_frame)
-    new_amount.pack(side=tk.LEFT)
+    new_amount.pack(side=tk.LEFT, padx=padding)
+    tk.Label(amount_frame, text='Where: ').pack(side=tk.LEFT)
+    amount_where = ttk.Combobox(amount_frame, values=['Fridge', 'To Buy'])
+    amount_where.set('Fridge')
+    amount_where.pack(side=tk.LEFT, padx=padding)
 
     # Move Items - Frame & Label
     move_frame = tk.Frame(root, padx=padding, pady=padding)
