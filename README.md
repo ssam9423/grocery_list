@@ -29,8 +29,9 @@ The csv file for requires the following column names:
   - `food`: (`String`) the name of the food item
   - `food_type`: (`String`) the type of the food item
   - `is_stocked`: (`Boolean`) if the item is in the fridge
+  - `stocked_num`: (`int`) amount of the item in the fridge
   - `need_to_buy`: (`Boolean`) if the user needs to buy the item
-  - `amount`: (`int`) amount of the item
+  - `buy_num`: (`int`) amount of the item that the user needs to buy
   - `in_cart`: (`Boolean`) if the item is in the user's cart
 
 ## Adapting the Code
