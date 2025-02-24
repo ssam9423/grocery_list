@@ -35,6 +35,8 @@ def move(full_list, move_to, food_name):
             # If moving to fridge, add 'buy_num' to 'stocked_num'
             if move_to == 'is_stocked':
                 full_list.at[index, 'stocked_num'] += full_list.at[index, 'buy_num']
+                full_list.at[index, 'stocked_num'] += full_list.at[index, 'add_buy_num']
+                full_list.at[index, 'buy_num'] = 0
             # If moving out of fridge, change 'stocked_num' to 0
             else:
                 full_list.at[index, 'stocked_num'] = 0
@@ -49,11 +51,9 @@ def sort_list(which_list, sort_criteria):
     # Most useful for food, food_type, is_low, in_cart
     if sort_criteria in which_list.columns:
         which_list = which_list.sort_values(by=sort_criteria)
-    # if sort_criteria == 'stocked_num':
-    #     which_list = which_list.iloc[::-1]
     if sort_criteria == 'number of items':
         which_list = which_list.sort_values(by='stocked_num')
-        which_list = which_list.sort_values(by='buy_num')
+        which_list = which_list.sort_values(by='buy_num', key=which_list['add_buy_num'].add)
     return which_list
 
 def get_index(which_list, food_name):
@@ -142,6 +142,8 @@ def update_scroll_list(which_listbox, which_list, where):
         amount = 0
         if where != '':
             amount = which_list.iloc[index].loc[where]
+        if where == 'buy_num':
+            amount += which_list.iloc[index].loc['add_buy_num']
         item_count = str(amount) + "   " + str(food)
         which_listbox.insert(tk.END, item_count)
         # Highlights item as light grey if in_cart
