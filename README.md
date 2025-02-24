@@ -33,6 +33,7 @@ The csv file for requires the following column names:
   - `need_to_buy`: (`Boolean`) if the user needs to buy the item
   - `buy_num`: (`int`) amount of the item that the user needs to buy
   - `in_cart`: (`Boolean`) if the item is in the user's cart
+  - `add_buy_num`: (`int`) amount of item user needs to buy to make recipes
 
 ## Adapting the Code
 Adapting the code is simple, the user just needs to change the `FILE_NAME` to the name of their csv file.
