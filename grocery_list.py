@@ -27,16 +27,20 @@ def move(full_list, move_to, food_name):
     # Most useful for moving items between is_stocked, need_to_buy and into past_items
     if is_in_list(full_list, food_name):
         index = get_index(full_list, food_name)
-        full_list.at[index, 'is_stocked'] = False
-        full_list.at[index, 'need_to_buy'] = False
+        # Assign is_stocked and need_to_buy
+        if move_to == 'is_stocked':
+            full_list.at[index, 'is_stocked'] = True
+        if move_to == 'need_to_buy':
+            full_list.at[index, 'need_to_buy'] = True
         # Moving to fridge (is_stocked) or to buy (need_to_buy)
         if move_to in full_list.columns:
-            full_list.at[index, move_to] = True
             # If moving to fridge, add 'buy_num' to 'stocked_num'
             if move_to == 'is_stocked':
                 full_list.at[index, 'stocked_num'] += full_list.at[index, 'buy_num']
                 full_list.at[index, 'stocked_num'] += full_list.at[index, 'add_buy_num']
                 full_list.at[index, 'buy_num'] = 0
+                if full_list.at[index, 'stocked_num'] == 0:
+                    full_list.at[index, 'stocked_num'] = 1
             # If moving out of fridge, change 'stocked_num' to 0
             else:
                 full_list.at[index, 'stocked_num'] = 0
@@ -44,6 +48,8 @@ def move(full_list, move_to, food_name):
         else:
             full_list.at[index, 'stocked_num'] = 0
             full_list.at[index, 'buy_num'] = 0
+            full_list.at[index, 'is_stocked'] = False
+            full_list.at[index, 'need_to_buy'] = False
     return full_list
 
 def sort_list(which_list, sort_criteria):
@@ -99,6 +105,7 @@ def update_amount(full_list, curr_food, new_amount, where):
             full_list.at[index, 'is_stocked'] = True
         if where == 'buy_num':
             full_list.at[index, 'need_to_buy'] = True
+            full_list.at[index, 'add_buy_num'] = 0
     return full_list
 
 def update_in_cart(full_list, curr_food):
@@ -151,108 +158,93 @@ def update_scroll_list(which_listbox, which_list, where):
             which_listbox.itemconfig(index, bg='#D3D3D3')
     return 0
 
+def update_all(lbs):
+    """Function to update all Scroll Lists and dbs"""
+    global in_fridge, to_buy, past_items, grocery_list
+    in_fridge, to_buy, past_items = update_lists(grocery_list)
+    fridge_lb, buy_lb, past_lb = lbs
+    update_scroll_list(fridge_lb, in_fridge, 'stocked_num')
+    update_scroll_list(buy_lb, to_buy, 'buy_num')
+    update_scroll_list(past_lb, past_items, '')
+
+def add(new_food_val, new_type_val, lbs):
+    """Function to add food given name and type"""
+    global grocery_list
+    if not new_food_val == '':
+        grocery_list = add_item(grocery_list, new_food_val, new_type_val)
+    update_all(lbs)
+
+def get_selected_items(lbs):
+    """returns list selected of item names"""
+    consolidated_list = []
+    for _, listbox in enumerate(lbs):
+        indexes = listbox.curselection()
+        if len(indexes) > 0:
+            items = [listbox.get(index) for index in indexes]
+            consolidated_list.extend(items)
+            break
+    return consolidated_list
+
+def delete(lbs):
+    """Function to delete a food"""
+    global grocery_list
+    del_list = get_selected_items(lbs)
+    for _, item in enumerate(del_list):
+        food_name = get_food_name(item)
+        grocery_list = delete_item(grocery_list, food_name)
+    update_all(lbs)
+
+def change_amount(where_amount, amount, lbs):
+    """Changes amount of selected items if amount is a valid integer"""
+    global grocery_list
+    change_list = get_selected_items(lbs)
+    if where_amount == 'Fridge':
+        where_amount = 'stocked_num'
+    else:
+        where_amount = 'buy_num'
+    try:
+        for _, item in enumerate(change_list):
+            food_name = get_food_name(item)
+            grocery_list = update_amount(grocery_list, food_name, amount, where_amount)
+        update_all(lbs)
+    except ValueError:
+        return 0
+
+def move_to(where, lbs):
+    """Moves selected items to specified list"""
+    global grocery_list
+    move_fridge_list = get_selected_items(lbs)
+    for _, item in enumerate(move_fridge_list):
+        food_name = get_food_name(item)
+        grocery_list = move(grocery_list, where, food_name)
+    update_all(lbs)
+
+def sort(sort_by_val, lbs):
+    """Function to sort items in lists"""
+    global grocery_list
+    grocery_list = sort_list(grocery_list, sort_by_val)
+    update_all(lbs)
+
+def in_cart(sort_by_val, lbs):
+    """"Function to change items to in_cart or not in_cart"""
+    global grocery_list
+    buy_lb = lbs[1]
+    cart_ind = buy_lb.curselection()
+    cart_list = [buy_lb.get(index) for index in cart_ind]
+    for _, item in enumerate(cart_list):
+        food_name = get_food_name(item)
+        grocery_list = update_in_cart(grocery_list, food_name)
+    update_all(lbs)
+    sort(sort_by_val, lbs)
+
+def save(full_list):
+    """Save Lists to csv file"""
+    save_file(full_list)
+
+
 # Main Function
 def main():
     """Create the Main Window"""
-    # Functions Connecting Buttons to Action Functions - Buttons don't pass values
-    def add():
-        """Function to add food given name and type"""
-        global grocery_list
-        new_food_val = new_food.get()
-        new_type_val = new_type.get()
-        if not new_food_val == '':
-            grocery_list = add_item(grocery_list, new_food_val, new_type_val)
-        update_all()
-
-    def get_selected_items():
-        """returns list selected of item names"""
-        consolidated_list = []
-        for _, listbox in enumerate([fridge_lb, buy_lb, past_lb]):
-            indexes = listbox.curselection()
-            if len(indexes) > 0:
-                items = [listbox.get(index) for index in indexes]
-                consolidated_list.extend(items)
-                break
-        return consolidated_list
-
-    def delete():
-        """Function to delete a food"""
-        global grocery_list
-        del_list = get_selected_items()
-        for _, item in enumerate(del_list):
-            food_name = get_food_name(item)
-            grocery_list = delete_item(grocery_list, food_name)
-        update_all()
-
-    def change_amount():
-        """Changes amount of selected items if amount is a valid integer"""
-        global grocery_list
-        change_list = get_selected_items()
-        where_amount = amount_where.get()
-        if where_amount == 'Fridge':
-            where_amount = 'stocked_num'
-        else:
-            where_amount = 'buy_num'
-        try:
-            amount = int(new_amount.get())
-            for _, item in enumerate(change_list):
-                food_name = get_food_name(item)
-                grocery_list = update_amount(grocery_list, food_name, amount, where_amount)
-            update_all()
-        except ValueError:
-            return 0
-
-    def move_to(where):
-        """Moves selected items to specified list"""
-        global grocery_list
-        move_fridge_list = get_selected_items()
-        for _, item in enumerate(move_fridge_list):
-            food_name = get_food_name(item)
-            grocery_list = move(grocery_list, where, food_name)
-        update_all()
-
-    def move_to_fridge():
-        """Moves selected items to the fridge"""
-        move_to('is_stocked')
-
-    def move_to_buy():
-        """Moves selected items to the to buy list"""
-        move_to('need_to_buy')
-
-    def move_to_past():
-        """Moves selected items to the past items list"""
-        move_to('past_items')
-
-    def in_cart():
-        """"Function to change items to in_cart or not in_cart"""
-        global grocery_list
-        cart_ind = buy_lb.curselection()
-        cart_list = [buy_lb.get(index) for index in cart_ind]
-        for _, item in enumerate(cart_list):
-            food_name = get_food_name(item)
-            grocery_list = update_in_cart(grocery_list, food_name)
-        update_all()
-        sort()
-
-    def sort():
-        """Function to sort items in lists"""
-        global grocery_list
-        sort_by_val = sort_by.get()
-        grocery_list = sort_list(grocery_list, sort_by_val)
-        update_all()
-
-    def update_all():
-        """Function to update all Scroll Lists and dbs"""
-        global in_fridge, to_buy, past_items
-        in_fridge, to_buy, past_items = update_lists(grocery_list)
-        update_scroll_list(fridge_lb, in_fridge, 'stocked_num')
-        update_scroll_list(buy_lb, to_buy, 'buy_num')
-        update_scroll_list(past_lb, past_items, '')
-
-    def save():
-        """Save Lists to csv file"""
-        save_file(grocery_list)
-
     # Initiates in_fridge, to_buy, and past_items lists
     global in_fridge, to_buy, past_items
     in_fridge, to_buy, past_items = update_lists(grocery_list)
@@ -316,7 +308,7 @@ def main():
     tk.Label(add_frame, text='Food Type: ').pack(side=tk.LEFT)
     new_type = tk.Entry(add_frame)
     new_type.pack(side=tk.LEFT, padx=padding)
-    sort()
+    sort(sort_by.get(), (fridge_lb, buy_lb, past_lb))
 
     # Change Amount - Frame, Entry & Label
     amount_frame = tk.Frame(root, padx=padding, pady=padding)
@@ -340,35 +332,46 @@ def main():
 
     # Buttons
     sort_button = tk.Button(sort_frame, text="Sort",
-                       width=button_w, height=button_h, command=sort)
+                            width=button_w, height=button_h,
+                            command=lambda: sort(sort_by.get(), (fridge_lb, buy_lb, past_lb)))
     sort_button.pack(side=tk.LEFT, padx=padding)
 
     add_button = tk.Button(add_frame, text="Add",
-                       width=button_w, height=button_h, command=add)
+                           width=button_w, height=button_h,
+                           command=lambda: add(new_food.get(), new_type.get(),
+                                                (fridge_lb, buy_lb, past_lb)))
     add_button.pack(side=tk.LEFT, padx=padding)
 
     amount_button = tk.Button(amount_frame, text='Change',
-                              width=button_w, height=button_h, command=change_amount)
+                              width=button_w, height=button_h,
+                              command=lambda: change_amount(amount_where.get(),
+                                                            int(new_amount.get()),
+                                                            (fridge_lb, buy_lb, past_lb)))
     amount_button.pack(side=tk.LEFT, padx=padding)
 
     fridge_button = tk.Button(move_frame, text="Fridge",
-                       width=button_w, height=button_h, command=move_to_fridge)
+                       width=button_w, height=button_h,
+                       command=lambda: move_to('is_stocked', (fridge_lb, buy_lb, past_lb)))
     fridge_button.pack(side=tk.LEFT, padx=padding)
     buy_button = tk.Button(move_frame, text="To Buy",
-                       width=button_w, height=button_h, command=move_to_buy)
+                           width=button_w, height=button_h,
+                           command=lambda: move_to('need_to_buy', (fridge_lb, buy_lb, past_lb)))
     buy_button.pack(side=tk.LEFT, padx=padding)
     past_button = tk.Button(move_frame, text="Past Items",
-                       width=button_w, height=button_h, command=move_to_past)
+                            width=button_w, height=button_h,
+                            command=lambda: move_to('past_items', (fridge_lb, buy_lb, past_lb)))
     past_button.pack(side=tk.LEFT, padx=padding)
 
     cart_button = tk.Button(button2_frame, text="In/Out Cart",
-                       width=button_w, height=button_h, command=in_cart)
+                            width=button_w, height=button_h,
+                            command=lambda: in_cart(sort_by.get(), (fridge_lb, buy_lb, past_lb)))
     cart_button.pack(side=tk.LEFT, padx=padding)
     delete_button = tk.Button(button2_frame, text="Delete",
-                       width=button_w, height=button_h, command=delete)
+                              width=button_w, height=button_h,
+                              command=lambda: delete((fridge_lb, buy_lb, past_lb)))
     delete_button.pack(side=tk.LEFT, padx=padding)
     save_button = tk.Button(button2_frame, text="Save",
-                       width=button_w, height=button_h, command=save)
+                            width=button_w, height=button_h, command= lambda: save(grocery_list))
     save_button.pack(side=tk.LEFT, padx=padding)
 
     root.mainloop()
