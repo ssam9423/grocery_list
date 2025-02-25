@@ -22,20 +22,20 @@ grocery_list = pd.read_csv(FILE_NAME)
 in_fridge, to_buy, past_items = [], [], []
 
 # Functions
-def move(full_list, move_to, food_name):
-    """Update Booleans move_to in full_list & return full_list"""
+def move(full_list, where_move_to, food_name):
+    """Update Booleans where_move_to in full_list & return full_list"""
     # Most useful for moving items between is_stocked, need_to_buy and into past_items
     if is_in_list(full_list, food_name):
         index = get_index(full_list, food_name)
         # Assign is_stocked and need_to_buy
-        if move_to == 'is_stocked':
+        if where_move_to == 'is_stocked':
             full_list.at[index, 'is_stocked'] = True
-        if move_to == 'need_to_buy':
+        if where_move_to == 'need_to_buy':
             full_list.at[index, 'need_to_buy'] = True
         # Moving to fridge (is_stocked) or to buy (need_to_buy)
-        if move_to in full_list.columns:
+        if where_move_to in full_list.columns:
             # If moving to fridge, add 'buy_num' to 'stocked_num'
-            if move_to == 'is_stocked':
+            if where_move_to == 'is_stocked':
                 full_list.at[index, 'stocked_num'] += full_list.at[index, 'buy_num']
                 full_list.at[index, 'stocked_num'] += full_list.at[index, 'add_buy_num']
                 full_list.at[index, 'buy_num'] = 0
